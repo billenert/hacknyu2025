@@ -1,7 +1,6 @@
 from ultralytics import YOLO
 import numpy as np
 import streamlit as st
-from PIL import Image
 import cv2
 import sounddevice as sd
 import whisper
@@ -45,7 +44,7 @@ def extract_most_relevant_noun(text):
     Return only the noun. Do not include any additional text or explanation.
     """
     step1_response = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # Use GPT-4
+        model="gpt-3.5-turbo",  # 👈 Use GPT-3.5-turbo
         messages=[
             {"role": "system", "content": "You are a helpful assistant that extracts the most important noun from a sentence."},
             {"role": "user", "content": step1_prompt}
@@ -66,7 +65,7 @@ def extract_most_relevant_noun(text):
     Return only the noun. Do not include any additional text or explanation.
     """
     step2_response = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # Use GPT-4
+        model="gpt-3.5-turbo",  # 👈 Use GPT-3.5-turbo
         messages=[
             {"role": "system", "content": "You are a helpful assistant that maps a noun to the most relevant COCO dataset noun."},
             {"role": "user", "content": step2_prompt}
@@ -78,38 +77,11 @@ def extract_most_relevant_noun(text):
 
     return relevant_noun
 
+# Initialize session state for the relevant noun
+if "relevant_noun" not in st.session_state:
+    st.session_state.relevant_noun = ""
+
 st.title("YOLO Object Detection with Streamlit")
-
-# Image Upload and Processing
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-if uploaded_file is not None:
-    image = np.array(Image.open(uploaded_file))
-    results = model(image)
-    annotated_image = results[0].plot()
-
-    st.image(annotated_image, caption="Processed Image with Detections", use_column_width=True)
-
-# Video Upload and Processing
-uploaded_video = st.file_uploader("Upload a video...", type=["mp4", "avi", "mov"])
-if uploaded_video is not None:
-    tfile = f"temp_video.{uploaded_video.name.split('.')[-1]}"
-    with open(tfile, "wb") as f:
-        f.write(uploaded_video.read())
-
-    cap = cv2.VideoCapture(tfile)
-    stframe = st.empty()
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        results = model(frame)
-        annotated_frame = results[0].plot()
-
-        stframe.image(annotated_frame, channels="BGR", caption="Processed Video Frame")
-
-    cap.release()
 
 # Webcam Processing with Selection
 use_webcam = st.checkbox("Use Webcam for Live Detection")
@@ -129,9 +101,18 @@ if use_webcam:
             if not ret:
                 break
 
+            # Perform object detection
             results = model(frame)
+
+            # Filter results to only show the relevant noun
+            if st.session_state.relevant_noun:
+                filtered_results = [r for r in results[0].boxes if model.names[int(r.cls)] == st.session_state.relevant_noun]
+                results[0].boxes = filtered_results
+
+            # Plot the annotated frame
             annotated_frame = results[0].plot()
 
+            # Display the annotated frame
             stframe.image(annotated_frame, channels="BGR", caption=f"Live Webcam Detection (Camera {webcam_index})")
 
         cap.release()
@@ -191,6 +172,7 @@ if st.button("🎤 Press to Speak", key="big_button"):
 
     # Extract the most relevant COCO noun using OpenAI API
     relevant_noun = extract_most_relevant_noun(transcription)
+    st.session_state.relevant_noun = relevant_noun  # Store the relevant noun in session state
     st.write(f"The most relevant COCO noun is: **{relevant_noun}**")
 
     # Clean up the temporary file
