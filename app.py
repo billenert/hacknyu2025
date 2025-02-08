@@ -3,13 +3,16 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 import cv2
-import kagglehub
-
-
-# path=r"C:\Users\ryanj\.cache\kagglehub\datasets\nadavishai\yolov8-glasses-dataset-v1\versions\4"
+import sounddevice as sd
+import whisper
+import tempfile
+import os
 
 # Load YOLO model
-model = YOLO("runs/detect/train16/weights/best.pt")  # 👈 Load your trained weights
+model = YOLO("yolov8n.pt")  # 👈 Load a pretrained model (e.g., YOLOv8 Nano)
+
+# Load Whisper model
+whisper_model = whisper.load_model("base")  # Load Whisper base model (smallest and fastest)
 
 st.title("YOLO Object Detection with Streamlit")
 
@@ -68,3 +71,37 @@ if use_webcam:
             stframe.image(annotated_frame, channels="BGR", caption=f"Live Webcam Detection (Camera {webcam_index})")
 
         cap.release()
+
+# Microphone and Whisper Integration
+st.markdown("---")
+st.header("Microphone Input with Whisper")
+
+# Add a big button to activate the microphone
+if st.button("🎤 Press to Speak", use_container_width=True):
+    st.write("Listening... Speak now!")
+
+    # Record audio from the microphone
+    sample_rate = 16000  # Whisper expects 16kHz audio
+    duration = 5  # Record for 5 seconds
+    audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype="float32")
+    sd.wait()  # Wait until the recording is finished
+
+    # Save the recorded audio to a temporary file
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmpfile:
+        import scipy.io.wavfile as wav
+        wav.write(tmpfile.name, sample_rate, audio)  # Save as WAV file
+        tmpfile_path = tmpfile.name
+
+    # Transcribe the audio using Whisper
+    result = whisper_model.transcribe(tmpfile_path)
+    transcription = result["text"]
+
+    # Print the transcription to the console
+    print("Transcription:", transcription)
+
+    # Display the transcription on the Streamlit app
+    st.write("You said:")
+    st.write(transcription)
+
+    # Clean up the temporary file
+    os.remove(tmpfile_path)
