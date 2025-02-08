@@ -7,12 +7,55 @@ import sounddevice as sd
 import whisper
 import tempfile
 import os
+from openai import OpenAI  # Import the new OpenAI client
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Load YOLO model
 model = YOLO("yolov8n.pt")  # 👈 Load a pretrained model (e.g., YOLOv8 Nano)
 
 # Load Whisper model
 whisper_model = whisper.load_model("base")  # Load Whisper base model (smallest and fastest)
+
+# Initialize the OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Load API key from .env file
+
+# List of COCO dataset nouns (80 categories)
+COCO_NOUNS = [
+    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
+    "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+    "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
+    "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
+    "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
+    "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
+    "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
+    "hair drier", "toothbrush"
+]
+
+# Function to extract the most relevant COCO noun using OpenAI API
+def extract_most_relevant_noun(text):
+    prompt = f"""
+    The following is a list of nouns from the COCO dataset:
+    {', '.join(COCO_NOUNS)}
+
+    Analyze the following sentence and select the most relevant noun from the list:
+    "{text}"
+
+    Return only the noun. Do not include any additional text or explanation.
+    """
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that selects the most relevant noun from the COCO dataset."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=10,
+        temperature=0.2
+    )
+    return response.choices[0].message.content.strip()
 
 st.title("YOLO Object Detection with Streamlit")
 
@@ -76,8 +119,30 @@ if use_webcam:
 st.markdown("---")
 st.header("Microphone Input with Whisper")
 
-# Add a big button to activate the microphone
-if st.button("🎤 Press to Speak", use_container_width=True):
+# Custom CSS to make the button super big
+st.markdown(
+    """
+    <style>
+    div.stButton > button:first-child {
+        font-size: 30px;
+        height: 100px;
+        width: 100%;
+        border-radius: 10px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #45a049;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Add a super big button to activate the microphone
+if st.button("🎤 Press to Speak", key="big_button"):
     st.write("Listening... Speak now!")
 
     # Record audio from the microphone
@@ -102,6 +167,10 @@ if st.button("🎤 Press to Speak", use_container_width=True):
     # Display the transcription on the Streamlit app
     st.write("You said:")
     st.write(transcription)
+
+    # Extract the most relevant COCO noun using OpenAI API
+    relevant_noun = extract_most_relevant_noun(transcription)
+    st.write(f"The most relevant COCO noun is: **{relevant_noun}**")
 
     # Clean up the temporary file
     os.remove(tmpfile_path)
