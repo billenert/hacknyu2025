@@ -37,25 +37,46 @@ COCO_NOUNS = [
 
 # Function to extract the most relevant COCO noun using OpenAI API
 def extract_most_relevant_noun(text):
-    prompt = f"""
-    The following is a list of nouns from the COCO dataset:
-    {', '.join(COCO_NOUNS)}
-
-    Analyze the following sentence and select the most relevant noun from the list:
+    # Step 1: Extract the most important noun from the sentence
+    step1_prompt = f"""
+    Analyze the following sentence and extract the most important noun:
     "{text}"
 
     Return only the noun. Do not include any additional text or explanation.
     """
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+    step1_response = client.chat.completions.create(
+        model="gpt-3.5-turbo",  # Use GPT-4
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that selects the most relevant noun from the COCO dataset."},
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": "You are a helpful assistant that extracts the most important noun from a sentence."},
+            {"role": "user", "content": step1_prompt}
         ],
         max_tokens=10,
         temperature=0.2
     )
-    return response.choices[0].message.content.strip()
+    extracted_noun = step1_response.choices[0].message.content.strip()
+
+    # Step 2: Map the extracted noun to the most relevant COCO noun
+    step2_prompt = f"""
+    The following is a list of nouns from the COCO dataset:
+    {', '.join(COCO_NOUNS)}
+
+    Find the most relevant noun from the list that matches:
+    "{extracted_noun}"
+
+    Return only the noun. Do not include any additional text or explanation.
+    """
+    step2_response = client.chat.completions.create(
+        model="gpt-3.5-turbo",  # Use GPT-4
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that maps a noun to the most relevant COCO dataset noun."},
+            {"role": "user", "content": step2_prompt}
+        ],
+        max_tokens=10,
+        temperature=0.2
+    )
+    relevant_noun = step2_response.choices[0].message.content.strip()
+
+    return relevant_noun
 
 st.title("YOLO Object Detection with Streamlit")
 
