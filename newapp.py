@@ -32,7 +32,7 @@ pygame.mixer.init()
 sound = pygame.mixer.Sound("ping.wav")
 
 # MongoDB Intitialization
-MONGO_URI = "mongodb+srv://awesomeryank:Necro563808ryk!!@cluster0.ro9a0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = "mongodb+srv://awesomeryank:pass!!@cluster0.ro9a0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(MONGO_URI)
 db = client["my_database"]
 users_collection = db["users"]
