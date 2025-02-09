@@ -1,0 +1,13 @@
+streamlit
+numpy
+opencv-python
+sounddevice
+scipy
+pygame
+whisper
+pymongo
+ultralytics
+python-dotenv
+openai
+torch
+torchaudio
