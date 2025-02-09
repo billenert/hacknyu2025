@@ -34,10 +34,10 @@ HorusAI leverages state-of-the-art AI and computer vision to provide real-time a
 
 ## 📂 Project Structure
 📁 HorusAI 
-│── 📝 README.md # Project documentation 
-│── 📜 newapp.py # Main application script 
-│── 🎯 yolov8n.pt # General pre-trained YOLOv8 model 
-│── 🔬 best.pt # Custom YOLOv8 model trained on glasses dataset
+│── 📝 README.md # Project documentation |
+│── 📜 newapp.py # Main application script |
+│── 🎯 yolov8n.pt # General pre-trained YOLOv8 model |
+│── 🔬 best.pt # Custom YOLOv8 model trained on glasses dataset |
 
 📌 **Pretrained Model Dataset:**  
 [YOLOv8 Glasses Dataset on Kaggle](https://www.kaggle.com/datasets/nadavishai/yolov8-glasses-dataset-v1)
